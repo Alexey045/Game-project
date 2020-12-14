@@ -9,7 +9,7 @@ WindowSize = (600, 400)  # размер окна
 display = pygame.Surface((300, 200))
 screen = pygame.display.set_mode(WindowSize, 0)
 
-player_image = pygame.image.load('hero.png')
+player_image = pygame.image.load('project.png')
 dirt = pygame.image.load('brick.png')
 
 game_map = [[]]
