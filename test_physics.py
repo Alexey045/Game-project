@@ -4,6 +4,7 @@ from Box2D import b2Vec2
 from pygame.locals import *
 import pygame
 import Box2D as b
+import pytmx
 
 
 def main():
