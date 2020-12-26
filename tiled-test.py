@@ -40,7 +40,8 @@ def link_file(name):
 class Labyrinth:
     def __init__(self, filename, free_tiles):
         self.map = pytmx.load_pygame(
-            link_file(filename))  # ToDo почему то просит хранить tmx и png файлы в data/data
+            link_file(filename))  # внутри map файла прописнаы пути к
+        # ассетам. можно изменить вручную, или через tiled
         self.height = self.map.height
         self.width = self.map.width
         self.tile_height = self.map.tileheight

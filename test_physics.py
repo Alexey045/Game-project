@@ -1,5 +1,4 @@
 import sys
-
 from Box2D import b2Vec2
 from pygame.locals import *
 import pygame
@@ -18,27 +17,55 @@ def main():
     moving_up = False
     running = True
     world = b.b2World()
-    world.gravity = (0, -15)
+    world.gravity = (0, -100)
     ground = world.CreateStaticBody(
         position=(0, -5), shapes=b.b2PolygonShape(box=(59, 5)))
     obj = world.CreateDynamicBody(
         angle=0, position=(10, 22), shapes=b.b2PolygonShape(box=(5, 5)))
-    obj.gravityScale = 0.0  # ставит гравитацию для обЪекта на ноль
+    # obj.gravityScale = 0.0  # ставит гравитацию для обЪекта на ноль
     # player_image = pygame.image.load('project.png')
     # player_location = [100, height - 220]
     # pygame.Rect(100, height - 220, player_image.get_width(),
     #            player_image.get_height())
+    velocity = x, y = 0, 0
     while running:
         screen.fill((220, 220, 0))
-        if moving_left:
-            obj.ApplyLinearImpulse(b2Vec2(-0.3, 0), (2.5, 2.5), True)
+        """Линейная скорость хороша, как константа. Но если в падении двигаться, 
+        то скорость падения уменьшается. А импульс и сила не знаю как ограничить.
+         Надо найти решение. и подумать как обЪединить со спрайтом."""
+        if moving_left:  # ToDo линейная скорость ведет себя странно
+            if x <= -20:
+                x = -20
+            elif x > 0:
+                x = 0
+            else:
+                x -= 1
+            obj.linearVelocity = (x, y)
+            # obj.ApplyLinearImpulse(b2Vec2(-0.3, 0), (2.5, 2.5), True)
         if moving_right:
+            if x >= 20:
+                x = 20
+            elif x < 0:
+                x = 0
+            else:
+                x += 1
+            obj.linearVelocity = (x, y)
             # obj.ApplyForceToCenter(b2Vec2(50, 0), True)
-            obj.ApplyLinearImpulse(b2Vec2(0.3, 0), (2.5, 2.5), True)
+            # obj.ApplyLinearImpulse(b2Vec2(0.3, 0), (2.5, 2.5), True)
+        if not moving_up:  # ToDo что-то в таком роде.
+            if y > 0 and len(obj.contacts) == 0:
+                y -= 1
         if moving_up:
             # obj.ApplyForceToCenter(b2Vec2(0, 50), True)
-            obj
-            obj.ApplyLinearImpulse(b2Vec2(0, 0.3), (2.5, 2.5), True)
+            # obj.linearVelocity = (0, 5)
+            # obj.ApplyLinearImpulse(b2Vec2(0, 0.3), (2.5, 2.5), True)
+            if y >= 20:
+                y = 20
+            elif y < 0:
+                y = 0
+            else:
+                y += 1
+            obj.linearVelocity = (x, y)
         for event in pygame.event.get():
             if event.type == QUIT:
                 return
@@ -66,13 +93,13 @@ def main():
 
 def drawPolygons(screen, body):
     for fixture in body.fixtures:
-        print(fixture)
+        # print(fixture)
         shape = fixture.shape
         vertices = [body.transform * v * 10 for v in shape.vertices]
-        print(vertices)
-        print(vertices)
+        # print(vertices)
+        # print(vertices)
         vertices = [(v[0], 450 - v[1]) for v in vertices]
-        print(vertices)
+        # print(vertices)
         pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
