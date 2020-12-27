@@ -38,17 +38,17 @@ def link_file(name):
 
 
 class Labyrinth:
-    def __init__(self, filename, free_tiles):
+    def __init__(self, filename):
         self.map = pytmx.load_pygame(
-            link_file(filename))  # внутри map файла прописнаы пути к
+            link_file(filename))  # внутри map файла прописаны пути к
         # ассетам. можно изменить вручную, или через tiled
         self.height = self.map.height
         self.width = self.map.width
         self.tile_height = self.map.tileheight
         self.tile_width = self.map.tilewidth
-        self.free_tiles = free_tiles
+        # self.free_tiles = free_tiles
 
-    def render(self, screen):
+    def render(self, screen):  # ToDo рассчитан на тайлы 16 на 16, 16 на 32 надо помещать вврх
         for y in range(self.height):
             for x in range(self.width):
                 image = self.map.get_tile_image(x, y, 0)
@@ -58,17 +58,43 @@ class Labyrinth:
     def get_tile_id(self, pos):
         return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
 
-    def is_free(self, pos):  # ToDO как это раотает?
-        return self.get_tile_id(pos) in self.free_tiles
+    """def is_free(self, pos):  # ToDO как это раотает?
+        return self.get_tile_id(pos) in self.free_tiles"""
 
     def find_path_step(self):  # и это тоже...
+        pass
+
+
+class Hero:
+    def __init__(self, pos):
+        self.x, self.y = pos
+
+    def get_pos(self):
+        return self.x, self.y
+
+    def set_pos(self, pos):
+        self.x, self.y = pos
+
+    def render(self, screen):
+        pass
+
+    def movement(self):
+        pass
+
+
+class Enemy(Hero):
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.x, self.y = pos
+
+    def movement(self):
         pass
 
 
 def main():
     pygame.init()
     screen = pygame.display.set_mode(WINDOW_SIZE)
-    labyrinth = Labyrinth('map1.tmx', [0, 30])
+    labyrinth = Labyrinth('map1.tmx')
     clock = pygame.time.Clock()
     while 1:
         for event in pygame.event.get():

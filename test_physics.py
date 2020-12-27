@@ -22,50 +22,35 @@ def main():
         position=(0, -5), shapes=b.b2PolygonShape(box=(59, 5)))
     obj = world.CreateDynamicBody(
         angle=0, position=(10, 22), shapes=b.b2PolygonShape(box=(5, 5)))
+    obj.friction = 0
+    ground.friction = 0
     # obj.gravityScale = 0.0  # ставит гравитацию для обЪекта на ноль
     # player_image = pygame.image.load('project.png')
     # player_location = [100, height - 220]
     # pygame.Rect(100, height - 220, player_image.get_width(),
     #            player_image.get_height())
-    velocity = x, y = 0, 0
+    jump = True
+    count = 0
     while running:
+        x, y = obj.__GetLinearVelocity()
         screen.fill((220, 220, 0))
-        """Линейная скорость хороша, как константа. Но если в падении двигаться, 
-        то скорость падения уменьшается. А импульс и сила не знаю как ограничить.
-         Надо найти решение. и подумать как обЪединить со спрайтом."""
-        if moving_left:  # ToDo линейная скорость ведет себя странно
-            if x <= -20:
-                x = -20
-            elif x > 0:
-                x = 0
-            else:
+        if moving_left:
+            if x >= -20:
                 x -= 1
-            obj.linearVelocity = (x, y)
-            # obj.ApplyLinearImpulse(b2Vec2(-0.3, 0), (2.5, 2.5), True)
         if moving_right:
-            if x >= 20:
-                x = 20
-            elif x < 0:
-                x = 0
-            else:
+            if x <= 20:
                 x += 1
-            obj.linearVelocity = (x, y)
-            # obj.ApplyForceToCenter(b2Vec2(50, 0), True)
-            # obj.ApplyLinearImpulse(b2Vec2(0.3, 0), (2.5, 2.5), True)
-        if not moving_up:  # ToDo что-то в таком роде.
-            if y > 0 and len(obj.contacts) == 0:
-                y -= 1
-        if moving_up:
-            # obj.ApplyForceToCenter(b2Vec2(0, 50), True)
-            # obj.linearVelocity = (0, 5)
-            # obj.ApplyLinearImpulse(b2Vec2(0, 0.3), (2.5, 2.5), True)
-            if y >= 20:
-                y = 20
-            elif y < 0:
-                y = 0
-            else:
-                y += 1
-            obj.linearVelocity = (x, y)
+        if not moving_right and not moving_left:
+            pass
+        if moving_up and jump and count <= 1:  # увеличивает в зависимости от удержания
+            count += 1  # ToDo
+            y += + 10  # и не равномерно
+            jump = False
+            print(count)
+        obj.__SetLinearVelocity([x, y])
+        if len(obj.contacts) != 0:
+            jump = True
+            count = 0
         for event in pygame.event.get():
             if event.type == QUIT:
                 return
