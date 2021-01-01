@@ -16,22 +16,21 @@ def main():
     world.gravity = (0, -100)
     ground = world.CreateStaticBody(
         position=(0, -5), shapes=b.b2PolygonShape(box=(59, 5)))
-    obj = world.CreateDynamicBody(
-        angle=0, position=(10, 22), shapes=b.b2PolygonShape(box=(5, 5)))
-    obj.friction = 0
-    ground.friction = 0
+    # obj = world.CreateDynamicBody(
+    #   angle=0, position=(10, 22), shapes=b.b2PolygonShape(box=(5, 5)))
     # player_image = pygame.image.load('project.png')
     # player_location = [100, height - 220]
     # pygame.Rect(100, height - 220, player_image.get_width(),
     # player_image.get_height())
     jump = False
+    person = Hero(world)
     while running:
-        x, y = obj.__GetLinearVelocity()
-        print(x)
+        person.movement()
+        # x, y = obj.__GetLinearVelocity()
         for event in pygame.event.get():
             if event.type == QUIT:
                 return
-            if event.type == KEYDOWN:
+            """if event.type == KEYDOWN:
                 if event.key == K_RIGHT:
                     moving_right = True
                 if event.key == K_LEFT:
@@ -51,16 +50,62 @@ def main():
         if moving_right:
             if x < 15:
                 x += 1
-        if len(obj.contacts) != 0:
-            jump = True
-        obj.__SetLinearVelocity([x, y])
+        if len(obj.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
+            jump = True"""
+        # obj.__SetLinearVelocity([x, y])
         screen.fill((220, 220, 0))
-        drawPolygons(screen, obj)
+        person.drawPolygons(screen)
         # screen.blit(player_image, player_location)
-        drawPolygons(screen, ground)
+        # drawPolygons(screen, ground)
+        # pygame.display.flip()
         world.Step(1 / 60, 10, 10)
         pygame.display.flip()
         clock.tick(60)
+
+
+class Hero:  # ToDo
+    def __init__(self, world):
+        self.jump = False
+        self.moving_left = False
+        self.moving_right = False
+        self.body = world.CreateDynamicBody(
+            angle=0, position=(10, 22), shapes=b.b2PolygonShape(box=(5, 5)))
+        self.x, self.y = 0, 0
+
+    def movement(self):  # ToDo
+        self.x, self.y = self.body.linearVelocity.x, self.body.linearVelocity.y
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                if event.key == K_RIGHT:
+                    self.moving_right = True
+                if event.key == K_LEFT:
+                    self.moving_left = True
+                if event.key == K_UP:
+                    if self.jump and len(self.body.contacts) != 0:
+                        self.y += 50
+                        self.jump = False
+            if event.type == KEYUP:
+                if event.key == K_RIGHT:
+                    self.moving_right = False
+                if event.key == K_LEFT:
+                    self.moving_left = False
+        if self.moving_left:
+            if self.x > -15:
+                self.x -= 1
+        if self.moving_right:
+            if self.x < 15:
+                self.x += 1
+        if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
+            self.jump = True
+        self.body.linearVelocity.x = self.x
+        self.body.linearVelocity.y = self.y
+
+    def drawPolygons(self, screen):
+        for fixture in self.body.fixtures:
+            shape = fixture.shape
+            vertices = [self.body.transform * v * 10 for v in shape.vertices]
+            vertices = [(v[0], 450 - v[1]) for v in vertices]
+            pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
 def drawPolygons(screen, body):
