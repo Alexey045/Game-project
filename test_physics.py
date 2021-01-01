@@ -20,17 +20,18 @@ def main():
     ground = world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(59, 5)))
     player_image = load_image('project.png', DATA_FILE, -1)
     player_location = [100, HEIGHT - player_image.get_height()]
+    print(player_location)
     # pygame.Rect(100, height - 220, player_image.get_width(),
     # player_image.get_height())
     person = Hero(world)
     while running:
+        person.awake()
         person.get_x_y()
         for event in pygame.event.get():
             if event.type == QUIT:
                 return
             person.movement(event)
         person.check()
-        person.awake()
         person.set_x_y()
         screen.fill((220, 220, 0))
         person.drawPolygons(screen, size)
@@ -92,7 +93,8 @@ class Hero:
         self.moving_left = False
         self.moving_right = False
         self.body = world.CreateDynamicBody(
-            angle=0, position=(0.75, 22), shapes=b.b2PolygonShape(box=(0.75, 1.55)))  # 1 = 20 pixels
+            angle=0, position=(10.75, 1.55),
+            shapes=b.b2PolygonShape(box=(0.75, 1.55)))  # 1 = 20 pixel
         self.x, self.y = 0, 0
 
     def get_x_y(self):
@@ -138,12 +140,32 @@ class Hero:
             shape = fixture.shape
             vertices = [self.body.transform * v * 10 for v in shape.vertices]
             vertices = [(v[0], height - v[1]) for v in vertices]
-            print(vertices)
             pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
-# formula = 0.05 * (WIDTH - 1) - нахождение позиции центра объекта
-# vertical = 0.05 * (SIZE - 1) - нахождение размеров объетка
+# ToDo проверить по оси X формулу
+"""
+Для рассчета Х
+formula = 0.1 * (player_location[0] + (WIDTH / 2))
+if formula > 0:
+    formula -= 0.05
+else:
+    formula += 0.05
+
+"""
+"""
+Для рассчета Y:
+formula = 0.1 * ((HEIGHT - player_location[1]) - (player_image.get_height() / 2))
+if formula > 0:
+    formula -= 0.05
+elif formula == 0:
+    pass
+else:
+    formula += 0.05
+"""
+# HEIGHT - player_image.get_height()
+# vertical = 0.05 * (X - 1) - нахождение размеров объетка
+# vertical = 0.05 * (Y - 1) - нахождение размеров объетка
 
 if __name__ == '__main__':
     main()
