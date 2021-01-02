@@ -6,25 +6,93 @@ import Box2D as b
 
 
 def main():
+    class Hero:
+        def __init__(self, world):
+            self.jump = False
+            self.moving_left = False
+            self.moving_right = False
+            self.sprite = load_image('project.png', DATA_FILE, -1)
+            self.player_location = [100, HEIGHT - self.sprite.get_height()]
+            self.body = world.CreateDynamicBody(
+                angle=0, position=(self.coords()),
+                shapes=b.b2PolygonShape(box=(self.size())))  # 1 = 20 pixel
+            self.x, self.y = 0, 0
+
+        def coords(self):
+            formula_x = 0.1 * (self.player_location[0] + (self.sprite.get_width() / 2))
+            if formula_x > 0:
+                formula_x -= 0.05
+            elif formula_x < 0:
+                formula_x += 0.05
+            formula_y = 0.1 * ((HEIGHT - self.player_location[1]) - (self.sprite.get_height() / 2))
+            if formula_y > 0:
+                formula_y -= 0.05
+            elif formula_y < 0:
+                formula_y += 0.05
+            return formula_x, formula_y
+
+        def merge(self):  # ToDo
+            x, y = person.body.position
+            self.player_location = [x / 0.1 - (self.sprite.get_width() / 2) + 0.05,
+                                    -(y / 0.1 - HEIGHT + (self.sprite.get_height() / 2))]
+
+        def size(self):
+            size_x = 0.05 * (self.sprite.get_width() - 1)
+            size_y = 0.05 * (self.sprite.get_height() - 1)
+            return size_x, size_y
+
+        def get_x_y(self):
+            self.x = self.body.linearVelocity.x
+            self.y = self.body.linearVelocity.y
+
+        def set_x_y(self):
+            self.body.linearVelocity.x = self.x
+            self.body.linearVelocity.y = self.y
+
+        def awake(self):
+            self.body.awake = True
+
+        def movement(self, event):
+            if event.type == KEYDOWN:
+                if event.key == K_RIGHT:
+                    self.moving_right = True
+                if event.key == K_LEFT:
+                    self.moving_left = True
+                if event.key == K_UP:
+                    if self.jump and len(self.body.contacts) != 0:
+                        self.y += 50
+                        self.jump = False
+            if event.type == KEYUP:
+                if event.key == K_RIGHT:
+                    self.moving_right = False
+                if event.key == K_LEFT:
+                    self.moving_left = False
+
+        def check(self):
+            if self.moving_left:
+                if self.x > -15:
+                    self.x -= 1
+            if self.moving_right:
+                if self.x < 15:
+                    self.x += 1
+            if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
+                self.jump = True
+
     pygame.init()
     pygame.font.init()
     WIDTH = 600
     HEIGHT = 600
-    DATA_FILE = 'data'
-    size = (WIDTH, HEIGHT)
-    screen = pygame.display.set_mode(size)
+    SIZE = (WIDTH, HEIGHT)
+    screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
     running = True
     world = b.b2World()
     world.gravity = (0, -100)
-    ground = world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(59, 5)))
-    player_image = load_image('project.png', DATA_FILE, -1)
-    player_location = [100, HEIGHT - player_image.get_height()]
-    print(player_location)
-    # pygame.Rect(100, height - 220, player_image.get_width(),
-    # player_image.get_height())
+    ground = world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
+    DATA_FILE = 'data'
     person = Hero(world)
     while running:
+        person.merge()
         person.awake()
         person.get_x_y()
         for event in pygame.event.get():
@@ -34,9 +102,7 @@ def main():
         person.check()
         person.set_x_y()
         screen.fill((220, 220, 0))
-        person.drawPolygons(screen, size)
-        screen.blit(player_image, player_location)
-        # drawPolygons(screen, ground)
+        screen.blit(person.sprite, person.player_location)
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
         clock.tick(60)
@@ -87,85 +153,14 @@ class Camera:  # ToDO
         self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)
 
 
-class Hero:
-    def __init__(self, world):
-        self.jump = False
-        self.moving_left = False
-        self.moving_right = False
-        self.body = world.CreateDynamicBody(
-            angle=0, position=(10.75, 1.55),
-            shapes=b.b2PolygonShape(box=(0.75, 1.55)))  # 1 = 20 pixel
-        self.x, self.y = 0, 0
-
-    def get_x_y(self):
-        self.x = self.body.linearVelocity.x
-        self.y = self.body.linearVelocity.y
-
-    def set_x_y(self):
-        self.body.linearVelocity.x = self.x
-        self.body.linearVelocity.y = self.y
-
-    def awake(self):
-        self.body.awake = True
-
-    def movement(self, event):
-        if event.type == KEYDOWN:
-            if event.key == K_RIGHT:
-                self.moving_right = True
-            if event.key == K_LEFT:
-                self.moving_left = True
-            if event.key == K_UP:
-                if self.jump and len(self.body.contacts) != 0:
-                    self.y += 50
-                    self.jump = False
-        if event.type == KEYUP:
-            if event.key == K_RIGHT:
-                self.moving_right = False
-            if event.key == K_LEFT:
-                self.moving_left = False
-
-    def check(self):
-        if self.moving_left:
-            if self.x > -15:
-                self.x -= 1
-        if self.moving_right:
-            if self.x < 15:
-                self.x += 1
-        if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
-            self.jump = True
-
-    def drawPolygons(self, screen, size):
+"""def drawPolygons(self, screen, size):
         height = size[0]
         for fixture in self.body.fixtures:
             shape = fixture.shape
             vertices = [self.body.transform * v * 10 for v in shape.vertices]
             vertices = [(v[0], height - v[1]) for v in vertices]
-            pygame.draw.polygon(screen, (255, 255, 255), vertices)
-
-
-# ToDo проверить по оси X формулу
-"""
-Для рассчета Х
-formula = 0.1 * (player_location[0] + (WIDTH / 2))
-if formula > 0:
-    formula -= 0.05
-else:
-    formula += 0.05
-
-"""
-"""
-Для рассчета Y:
-formula = 0.1 * ((HEIGHT - player_location[1]) - (player_image.get_height() / 2))
-if formula > 0:
-    formula -= 0.05
-elif formula == 0:
-    pass
-else:
-    formula += 0.05
-"""
-# HEIGHT - player_image.get_height()
-# vertical = 0.05 * (X - 1) - нахождение размеров объетка
-# vertical = 0.05 * (Y - 1) - нахождение размеров объетка
+            pygame.draw.polygon(screen, (255, 255, 255), vertices)"""
+# person.drawPolygons(screen, size)
 
 if __name__ == '__main__':
     main()
