@@ -12,7 +12,7 @@ def main():
             self.moving_left = False
             self.moving_right = False
             self.sprite = load_image('project.png', DATA_FILE, -1)
-            self.player_location = [100, HEIGHT - self.sprite.get_height()]
+            self.player_location = [100, HEIGHT - self.sprite.get_height() - 100]
             self.body = world.CreateDynamicBody(
                 angle=0, position=(self.coords()),
                 shapes=b.b2PolygonShape(box=(self.size())))  # 1 = 20 pixel
@@ -78,11 +78,15 @@ def main():
             if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
                 self.jump = True
 
+        def death(self):
+            pass
+
     pygame.init()
     pygame.font.init()
     WIDTH = 600
     HEIGHT = 600
     SIZE = (WIDTH, HEIGHT)
+    SKY = (119, 128, 225)
     screen = pygame.display.set_mode(SIZE)
     clock = pygame.time.Clock()
     running = True
@@ -101,7 +105,7 @@ def main():
             person.movement(event)
         person.check()
         person.set_x_y()
-        screen.fill((220, 220, 0))
+        screen.fill(SKY)
         screen.blit(person.sprite, person.player_location)
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
