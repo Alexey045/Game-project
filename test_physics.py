@@ -2,6 +2,7 @@ import os
 import sys
 from pygame.locals import *
 import pygame
+import pytmx
 import Box2D as b
 
 
@@ -83,8 +84,8 @@ def main():
 
     pygame.init()
     pygame.font.init()
-    WIDTH = 600
-    HEIGHT = 600
+    WIDTH = 320
+    HEIGHT = 240
     SIZE = (WIDTH, HEIGHT)
     SKY = (119, 128, 225)
     screen = pygame.display.set_mode(SIZE)
@@ -164,7 +165,62 @@ class Camera:  # ToDO
             vertices = [self.body.transform * v * 10 for v in shape.vertices]
             vertices = [(v[0], height - v[1]) for v in vertices]
             pygame.draw.polygon(screen, (255, 255, 255), vertices)"""
+
+
 # person.drawPolygons(screen, size)
+
+
+def link_file(name, DATA_FILE):
+    if not isinstance(name, str):
+        raise TypeError('file name must be str type')
+    fullname = os.path.join(DATA_FILE, name)
+    if os.path.exists(fullname):
+        return fullname
+    else:
+        raise FileNotFoundError(f'Cannot find image: {name}')
+
+
+class Labyrinth:
+    def __init__(self, filename, world):
+        self.map = pytmx.load_pygame(
+            link_file(filename))  # внутри map файла прописаны пути к
+        # ассетам. можно изменить вручную, или через tiled
+        self.world = world
+        """
+        world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
+        def merge(self):  # ToDo
+            x, y = person.body.position
+            self.player_location = [x / 0.1 - (self.sprite.get_width() / 2) + 0.05,
+                                    -(y / 0.1 - HEIGHT + (self.sprite.get_height() / 2))]
+
+        def size(self):
+            size_x = 0.05 * (self.sprite.get_width() - 1)
+            size_y = 0.05 * (self.sprite.get_height() - 1)
+            return size_x, size_y
+        """
+        # Todo print(self.map.tiledgidmap[self.map.get_tile_gid(1, 1, 0)])
+        self.height = self.map.height
+        self.width = self.map.width
+        self.tile_height = self.map.tileheight
+        self.tile_width = self.map.tilewidth
+        # self.free_tiles = free_tiles
+
+    def get_tile_id(self, pos):
+        return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
+
+    def collision(self):  # ToDo
+        pass
+
+    def render(self, screen):
+        for y in range(self.height):
+            for x in range(self.width):
+                image = self.map.get_tile_image(x, y, 0)
+                if image is not None:
+                    image.get_height()
+                    image.get_width()
+                    # x * self.tile_width, y * self.tile_height
+                    screen.blit(image, (x * self.tile_width, y * self.tile_height))
+
 
 if __name__ == '__main__':
     main()

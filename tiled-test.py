@@ -4,7 +4,7 @@ import pygame
 import pytmx
 from pygame.locals import *
 
-WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 480, 480
+WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 320, 240
 FPS = 60
 DATA_FILE = 'data'
 TILE_SIZE = 16
@@ -42,27 +42,27 @@ class Labyrinth:
         self.map = pytmx.load_pygame(
             link_file(filename))  # внутри map файла прописаны пути к
         # ассетам. можно изменить вручную, или через tiled
+        # print(self.map.tiledgidmap[self.map.get_tile_gid(1, 1, 0)])
+        if self.map.tiledgidmap[self.map.get_tile_gid(1, 1, 0)] == 4:  # ToDo
+            print('yes')
         self.height = self.map.height
         self.width = self.map.width
         self.tile_height = self.map.tileheight
         self.tile_width = self.map.tilewidth
         # self.free_tiles = free_tiles
 
-    def render(self, screen):  # ToDo рассчитан на тайлы 16 на 16, 16 на 32 надо помещать вврх
+    def get_tile_id(self, pos):
+        return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
+
+    def render(self, screen):
         for y in range(self.height):
             for x in range(self.width):
                 image = self.map.get_tile_image(x, y, 0)
                 if image is not None:
+                    image.get_height()
+                    image.get_width()
+                    # x * self.tile_width, y * self.tile_height
                     screen.blit(image, (x * self.tile_width, y * self.tile_height))
-
-    def get_tile_id(self, pos):
-        return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
-
-    """def is_free(self, pos):  # ToDO как это раотает?
-        return self.get_tile_id(pos) in self.free_tiles"""
-
-    def find_path_step(self):  # и это тоже...
-        pass
 
 
 class Hero:
@@ -94,7 +94,7 @@ class Enemy(Hero):
 def main():
     pygame.init()
     screen = pygame.display.set_mode(WINDOW_SIZE)
-    labyrinth = Labyrinth('map1.tmx')
+    labyrinth = Labyrinth('test.tmx')
     clock = pygame.time.Clock()
     while 1:
         for event in pygame.event.get():

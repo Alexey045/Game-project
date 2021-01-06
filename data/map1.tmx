@@ -5,7 +5,7 @@
  <tileset firstgid="3" source="brick-atlas.tsx"/>
  <layer id="1" name="Слой тайлов 1" width="30" height="30">
   <data encoding="base64" compression="zlib">
-   eJztzssJACAMRMH4679lU0RQxBl4590IAIB/jWxm6/aRYv3gVpP0bBsWXgD/
+   eJzt1jEOACAIQ9GCcv8r6+BEdLQY0590fhvBAPicrbHyItfSAI5/cm/bsXEZRZpcpZRSr9bmOv6730608p/z+/Ify3bZthfZcjkbXVoBbg==
   </data>
  </layer>
 </map>
