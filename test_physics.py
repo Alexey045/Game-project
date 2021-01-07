@@ -13,7 +13,7 @@ def main():
             self.moving_left = False
             self.moving_right = False
             self.sprite = load_image('project.png', DATA_FILE, -1)
-            self.player_location = [100, HEIGHT - self.sprite.get_height() - 48]
+            self.player_location = [113, HEIGHT - self.sprite.get_height() - 48]
             self.body = world.CreateDynamicBody(
                 angle=0, position=(self.coords()),
                 shapes=b.b2PolygonShape(box=(self.size())))  # 1 = 20 pixel
@@ -76,8 +76,21 @@ def main():
             if self.moving_right:
                 if self.x < 13:
                     self.x += 1
+            """if len(self.body.contacts) == 0 and self.jump:
+                self.sprite = load_image('HeroSpritesheet.png', DATA_FILE, -1)"""
             if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
                 self.jump = True
+
+        def drawPolygons(self, screen, size):
+            height = size[0]
+            for fixture in self.body.fixtures:
+                shape = fixture.shape
+                vertices = [self.body.transform * v * 10 for v in shape.vertices]
+                vertices = [(v[0], height - v[1]) for v in vertices]
+                pygame.draw.polygon(screen, (255, 255, 255), vertices)
+
+        def animation(self):
+            pass
 
         def death(self):
             pass
@@ -105,10 +118,13 @@ def main():
             if event.type == QUIT:
                 return
             person.movement(event)
+        print(person.x)
         person.check()
         person.set_x_y()
+        # camera.update(player)
         screen.fill(SKY)
         labyrinth.render(screen)
+        # person.drawPolygons(screen, size)
         screen.blit(person.sprite, person.player_location)
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
@@ -141,7 +157,8 @@ class Camera:  # ToDO
     def __init__(self, field_size):
         self.dx = 0
         self.dy = 0
-        self.field_size = field_size
+        # self.field_size = field_size # 20, 15
+        self.field_size = 20, 15
 
     def apply(self, obj):
         obj.rect.x += self.dx
@@ -158,18 +175,6 @@ class Camera:  # ToDO
     def update(self, target, WIDTH, HEIGHT):
         self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
         self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)
-
-
-"""def drawPolygons(self, screen, size):
-        height = size[0]
-        for fixture in self.body.fixtures:
-            shape = fixture.shape
-            vertices = [self.body.transform * v * 10 for v in shape.vertices]
-            vertices = [(v[0], height - v[1]) for v in vertices]
-            pygame.draw.polygon(screen, (255, 255, 255), vertices)"""
-
-
-# person.drawPolygons(screen, size)
 
 
 def link_file(name, DATA_FILE):
@@ -193,7 +198,6 @@ class Labyrinth:
         self.col = True
         self.is_ground = False
         self.HEIGHT = HEIGHT
-        # self.free_tiles = free_tiles
 
     def get_tile_id(self, pos):
         return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
@@ -217,13 +221,13 @@ class Labyrinth:
             formula_x += 0.05
         formula_y = 0.1 * (HEIGHT - self.tile_height * y - (image.get_height() / 2))
         if formula_y > 0:
-            formula_y -= 0.05
+            formula_y += 0.05
         elif formula_y < 0:
             formula_y += 0.05
         return formula_x, formula_y
 
     def size(self, image):
-        size_x = 0.05 * (image.get_width() - 1) - 0.01
+        size_x = 0.05 * (image.get_width() - 1) - 0.05
         size_y = 0.05 * (image.get_height() - 1)
         return size_x, size_y
 
