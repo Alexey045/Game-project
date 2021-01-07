@@ -13,7 +13,7 @@ def main():
             self.moving_left = False
             self.moving_right = False
             self.sprite = load_image('project.png', DATA_FILE, -1)
-            self.player_location = [100, HEIGHT - self.sprite.get_height() - 100]
+            self.player_location = [100, HEIGHT - self.sprite.get_height() - 48]
             self.body = world.CreateDynamicBody(
                 angle=0, position=(self.coords()),
                 shapes=b.b2PolygonShape(box=(self.size())))  # 1 = 20 pixel
@@ -32,7 +32,7 @@ def main():
                 formula_y += 0.05
             return formula_x, formula_y
 
-        def merge(self):  # ToDo
+        def merge(self):
             x, y = person.body.position
             self.player_location = [x / 0.1 - (self.sprite.get_width() / 2) + 0.05,
                                     -(y / 0.1 - HEIGHT + (self.sprite.get_height() / 2))]
@@ -61,7 +61,7 @@ def main():
                     self.moving_left = True
                 if event.key == K_UP:
                     if self.jump and len(self.body.contacts) != 0:
-                        self.y += 50
+                        self.y += 40
                         self.jump = False
             if event.type == KEYUP:
                 if event.key == K_RIGHT:
@@ -71,10 +71,10 @@ def main():
 
         def check(self):
             if self.moving_left:
-                if self.x > -15:
+                if self.x > -13:
                     self.x -= 1
             if self.moving_right:
-                if self.x < 15:
+                if self.x < 13:
                     self.x += 1
             if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
                 self.jump = True
@@ -96,6 +96,7 @@ def main():
     ground = world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
     DATA_FILE = 'data'
     person = Hero(world)
+    labyrinth = Labyrinth('test.tmx', world, DATA_FILE, HEIGHT)
     while running:
         person.merge()
         person.awake()
@@ -107,6 +108,7 @@ def main():
         person.check()
         person.set_x_y()
         screen.fill(SKY)
+        labyrinth.render(screen)
         screen.blit(person.sprite, person.player_location)
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
@@ -181,45 +183,49 @@ def link_file(name, DATA_FILE):
 
 
 class Labyrinth:
-    def __init__(self, filename, world):
-        self.map = pytmx.load_pygame(
-            link_file(filename))  # внутри map файла прописаны пути к
-        # ассетам. можно изменить вручную, или через tiled
+    def __init__(self, filename, world, DATAFILE, HEIGHT):
+        self.map = pytmx.load_pygame(link_file(filename, DATAFILE))
         self.world = world
-        """
-        world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
-        def merge(self):  # ToDo
-            x, y = person.body.position
-            self.player_location = [x / 0.1 - (self.sprite.get_width() / 2) + 0.05,
-                                    -(y / 0.1 - HEIGHT + (self.sprite.get_height() / 2))]
-
-        def size(self):
-            size_x = 0.05 * (self.sprite.get_width() - 1)
-            size_y = 0.05 * (self.sprite.get_height() - 1)
-            return size_x, size_y
-        """
-        # Todo print(self.map.tiledgidmap[self.map.get_tile_gid(1, 1, 0)])
         self.height = self.map.height
         self.width = self.map.width
         self.tile_height = self.map.tileheight
         self.tile_width = self.map.tilewidth
+        self.col = True
+        self.is_ground = False
+        self.HEIGHT = HEIGHT
         # self.free_tiles = free_tiles
 
     def get_tile_id(self, pos):
         return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
-
-    def collision(self):  # ToDo
-        pass
 
     def render(self, screen):
         for y in range(self.height):
             for x in range(self.width):
                 image = self.map.get_tile_image(x, y, 0)
                 if image is not None:
-                    image.get_height()
-                    image.get_width()
-                    # x * self.tile_width, y * self.tile_height
+                    if self.col:
+                        self.world.CreateStaticBody(position=(self.coords(image, x, y, self.HEIGHT)),
+                                                    shapes=b.b2PolygonShape(box=(self.size(image))))
                     screen.blit(image, (x * self.tile_width, y * self.tile_height))
+        self.col = False
+
+    def coords(self, image, x, y, HEIGHT):
+        formula_x = 0.1 * (x * image.get_width() + (image.get_width() / 2))
+        if formula_x > 0:
+            formula_x += 0.05
+        elif formula_x < 0:
+            formula_x += 0.05
+        formula_y = 0.1 * (HEIGHT - self.tile_height * y - (image.get_height() / 2))
+        if formula_y > 0:
+            formula_y -= 0.05
+        elif formula_y < 0:
+            formula_y += 0.05
+        return formula_x, formula_y
+
+    def size(self, image):
+        size_x = 0.05 * (image.get_width() - 1) - 0.01
+        size_y = 0.05 * (image.get_height() - 1)
+        return size_x, size_y
 
 
 if __name__ == '__main__':
