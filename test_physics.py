@@ -8,19 +8,19 @@ import Box2D as b
 
 def main():
     class Hero:
-        def __init__(self, world):
+        def __init__(self, level):
             self.jump = False
             self.moving_left = False
             self.moving_right = False
             self.sprite = load_image('project.png', DATA_FILE, -1)
             self.player_location = [113, HEIGHT - self.sprite.get_height() - 48]
-            self.body = world.CreateDynamicBody(
-                angle=0, position=(self.coords()),
+            self.body = level.CreateDynamicBody(
+                angle=0, position=(self.coordinates()),
                 shapes=b.b2PolygonShape(box=(self.size())))  # 1 = 20 pixel
             self.x, self.y = 0, 0
             self.check_jump = 0
 
-        def coords(self):
+        def coordinates(self):
             formula_x = 0.1 * (self.player_location[0] + (self.sprite.get_width() / 2))
             if formula_x > 0:
                 formula_x -= 0.05
@@ -54,21 +54,21 @@ def main():
         def awake(self):
             self.body.awake = True
 
-        def movement(self, event):
-            if event.type == KEYDOWN:
-                if event.key == K_RIGHT:
+        def movement(self, events):
+            if events.type == KEYDOWN:
+                if events.key == K_RIGHT:
                     self.moving_right = True
-                if event.key == K_LEFT:
+                if events.key == K_LEFT:
                     self.moving_left = True
-                if event.key == K_UP:
+                if events.key == K_UP:
                     if self.jump and len(self.body.contacts) != 0:
                         self.y += 40
                         self.jump = False
                         self.check_jump = 0
-            if event.type == KEYUP:
-                if event.key == K_RIGHT:
+            if events.type == KEYUP:
+                if events.key == K_RIGHT:
                     self.moving_right = False
-                if event.key == K_LEFT:
+                if events.key == K_LEFT:
                     self.moving_left = False
 
         def check(self):
@@ -84,12 +84,12 @@ def main():
                 if self.check_jump == 8 and self.y == 0:
                     self.jump = True
 
-        def drawPolygons(self, screen):
+        def drawPolygons(self, py_screen):
             for fixture in self.body.fixtures:
                 shape = fixture.shape
                 vertices = [self.body.transform * v * 10 for v in shape.vertices]
                 vertices = [(v[0], 240 - v[1]) for v in vertices]
-                pygame.draw.polygon(screen, (255, 255, 255), vertices)
+                pygame.draw.polygon(py_screen, (255, 255, 255), vertices)
 
         def animation(self):
             pass
@@ -108,7 +108,7 @@ def main():
     running = True
     world = b.b2World()
     world.gravity = (0, -100)
-    ground = world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
+    world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
     DATA_FILE = 'data'
     person = Hero(world)
     labyrinth = Labyrinth('test.tmx', world, DATA_FILE, HEIGHT)
@@ -154,7 +154,8 @@ def terminate():
     sys.exit()
 
 
-class Camera:  # ToDO
+# Todo
+"""class Camera:
     def __init__(self, field_size):
         self.dx = 0
         self.dy = 0
@@ -175,7 +176,7 @@ class Camera:  # ToDO
 
     def update(self, target, WIDTH, HEIGHT):
         self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
-        self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)
+        self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)"""
 
 
 def link_file(name, DATA_FILE):
@@ -186,6 +187,21 @@ def link_file(name, DATA_FILE):
         return fullname
     else:
         raise FileNotFoundError(f'Cannot find image: {name}')
+
+
+def size(image, last, first):
+    size_x = 0.05 * ((image.get_width() - 1) * (last - first + 1)) + 0.1
+    size_x += int(size_x / 0.85) * 0.05 - 0.05
+    size_y = 0.05 * (image.get_height() - 1)
+    return size_x, size_y
+
+
+def drawPolygons(screen, i):
+    for fixture in i.fixtures:
+        shape = fixture.shape
+        vertices = [i.transform * v * 10 for v in shape.vertices]
+        vertices = [(v[0], 240 - v[1]) for v in vertices]
+        pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
 class Labyrinth:
@@ -217,24 +233,24 @@ class Labyrinth:
                         if x == self.width - 1:
                             last_x = x
                             first = False
-                            self.collision(self.size(image, last_x, first_x),
-                                           self.coords(image, first_x, y, self.HEIGHT, last_x, first_x))
+                            self.collision(size(image, last_x, first_x),
+                                           self.coordinates(image, first_x, y, self.HEIGHT, last_x, first_x))
                         elif self.map.get_tile_image(x + 1, y, 0) is None:
                             last_x = x
                             first = False
-                            self.collision(self.size(image, last_x, first_x),
-                                           self.coords(image, first_x, y, self.HEIGHT, last_x, first_x))
+                            self.collision(size(image, last_x, first_x),
+                                           self.coordinates(image, first_x, y, self.HEIGHT, last_x, first_x))
                         else:
                             first = True
                     screen.blit(image, (x * self.tile_width, y * self.tile_height))
         self.col = False
 
-    def collision(self, size, coords):
-        self.world.CreateStaticBody(position=(coords),
-                                    shapes=b.b2PolygonShape(box=(size)))
+    def collision(self, sizes, coordinates):
+        self.world.CreateStaticBody(position=coordinates,
+                                    shapes=b.b2PolygonShape(box=sizes))
 
-    def coords(self, image, x, y, HEIGHT, last, first):
-        formula_x = 0.1 * ((x * image.get_width()) + ((image.get_width() * (last - first + 1) / 2)))
+    def coordinates(self, image, x, y, HEIGHT, last, first):
+        formula_x = 0.1 * ((x * image.get_width()) + (image.get_width() * (last - first + 1) / 2))
         if formula_x > 0:
             formula_x += 0.05
         elif formula_x < 0:
@@ -245,19 +261,6 @@ class Labyrinth:
         elif formula_y < 0:
             formula_y += 0.05
         return formula_x, formula_y
-
-    def size(self, image, last, first):
-        size_x = 0.05 * ((image.get_width() - 1) * (last - first + 1)) + 0.1
-        size_x += int(size_x / 0.85) * 0.05 - 0.05
-        size_y = 0.05 * (image.get_height() - 1)
-        return size_x, size_y
-
-    def drawPolygons(self, screen, i):
-        for fixture in i.fixtures:
-            shape = fixture.shape
-            vertices = [i.transform * v * 10 for v in shape.vertices]
-            vertices = [(v[0], 240 - v[1]) for v in vertices]
-            pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
 if __name__ == '__main__':
