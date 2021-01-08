@@ -81,12 +81,11 @@ def main():
             if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
                 self.jump = True
 
-        def drawPolygons(self, screen, size):
-            height = size[0]
+        def drawPolygons(self, screen):
             for fixture in self.body.fixtures:
                 shape = fixture.shape
                 vertices = [self.body.transform * v * 10 for v in shape.vertices]
-                vertices = [(v[0], height - v[1]) for v in vertices]
+                vertices = [(v[0], 240 - v[1]) for v in vertices]
                 pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
         def animation(self):
@@ -118,13 +117,12 @@ def main():
             if event.type == QUIT:
                 return
             person.movement(event)
-        print(person.x)
         person.check()
         person.set_x_y()
         # camera.update(player)
         screen.fill(SKY)
         labyrinth.render(screen)
-        # person.drawPolygons(screen, size)
+        # person.drawPolygons(screen)
         screen.blit(person.sprite, person.player_location)
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
@@ -196,40 +194,67 @@ class Labyrinth:
         self.tile_height = self.map.tileheight
         self.tile_width = self.map.tilewidth
         self.col = True
-        self.is_ground = False
+        self.tile = 16
         self.HEIGHT = HEIGHT
 
     def get_tile_id(self, pos):
         return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
 
     def render(self, screen):
+        first_x = 0
+        first = False
         for y in range(self.height):
             for x in range(self.width):
                 image = self.map.get_tile_image(x, y, 0)
                 if image is not None:
+                    if not first:
+                        first_x = x
+                        first = True
                     if self.col:
-                        self.world.CreateStaticBody(position=(self.coords(image, x, y, self.HEIGHT)),
-                                                    shapes=b.b2PolygonShape(box=(self.size(image))))
+                        if x == self.width - 1:
+                            last_x = x
+                            first = False
+                            self.collision(self.size(image, last_x, first_x),
+                                           self.coords(image, first_x, y, self.HEIGHT, last_x, first_x))
+                        elif self.map.get_tile_image(x + 1, y, 0) is None:
+                            last_x = x
+                            first = False
+                            self.collision(self.size(image, last_x, first_x),
+                                           self.coords(image, first_x, y, self.HEIGHT, last_x, first_x))
+                        else:
+                            first = True
                     screen.blit(image, (x * self.tile_width, y * self.tile_height))
         self.col = False
 
-    def coords(self, image, x, y, HEIGHT):
-        formula_x = 0.1 * (x * image.get_width() + (image.get_width() / 2))
+    def collision(self, size, coords):
+        self.world.CreateStaticBody(position=(coords),
+                                    shapes=b.b2PolygonShape(box=(size)))
+
+    def coords(self, image, x, y, HEIGHT, last, first):
+        formula_x = 0.1 * ((x * image.get_width()) + ((image.get_width() * (last - first + 1) / 2)))
         if formula_x > 0:
             formula_x += 0.05
         elif formula_x < 0:
             formula_x += 0.05
         formula_y = 0.1 * (HEIGHT - self.tile_height * y - (image.get_height() / 2))
         if formula_y > 0:
-            formula_y += 0.05
+            formula_y += 0.025
         elif formula_y < 0:
             formula_y += 0.05
         return formula_x, formula_y
 
-    def size(self, image):
-        size_x = 0.05 * (image.get_width() - 1) - 0.05
+    def size(self, image, last, first):
+        size_x = 0.05 * ((image.get_width() - 1) * (last - first + 1)) + 0.1
+        size_x += int(size_x / 0.85) * 0.05 - 0.05
         size_y = 0.05 * (image.get_height() - 1)
         return size_x, size_y
+
+    def drawPolygons(self, screen, i):
+        for fixture in i.fixtures:
+            shape = fixture.shape
+            vertices = [i.transform * v * 10 for v in shape.vertices]
+            vertices = [(v[0], 240 - v[1]) for v in vertices]
+            pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
 if __name__ == '__main__':
