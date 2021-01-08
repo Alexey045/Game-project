@@ -18,6 +18,7 @@ def main():
                 angle=0, position=(self.coords()),
                 shapes=b.b2PolygonShape(box=(self.size())))  # 1 = 20 pixel
             self.x, self.y = 0, 0
+            self.check_jump = 0
 
         def coords(self):
             formula_x = 0.1 * (self.player_location[0] + (self.sprite.get_width() / 2))
@@ -63,6 +64,7 @@ def main():
                     if self.jump and len(self.body.contacts) != 0:
                         self.y += 40
                         self.jump = False
+                        self.check_jump = 0
             if event.type == KEYUP:
                 if event.key == K_RIGHT:
                     self.moving_right = False
@@ -76,10 +78,11 @@ def main():
             if self.moving_right:
                 if self.x < 13:
                     self.x += 1
-            """if len(self.body.contacts) == 0 and self.jump:
-                self.sprite = load_image('HeroSpritesheet.png', DATA_FILE, -1)"""
-            if len(self.body.contacts) != 0:  # ToDo сделать проверку на нижнюю грань
-                self.jump = True
+            if len(self.body.contacts) != 0:
+                if self.check_jump != 8:
+                    self.check_jump += 1
+                if self.check_jump == 8 and self.y == 0:
+                    self.jump = True
 
         def drawPolygons(self, screen):
             for fixture in self.body.fixtures:
