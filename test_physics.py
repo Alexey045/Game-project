@@ -12,15 +12,26 @@ def main():
             self.jump = False
             self.moving_left = False
             self.moving_right = False
-            self.sprite = load_image('project.png', DATA_FILE, -1)
-            self.player_location = [113, HEIGHT - self.sprite.get_height() - 48]
+            self.animations_right = [load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk3.png', DATA_FILE, -1)]
+            self.animations_right = [load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
+                                     load_image('walk-3.png', DATA_FILE, -1)]
+            self.sprite = load_image('stand1.png', DATA_FILE, -1)
+            self.player_location = [10, HEIGHT - self.sprite.get_height() - 48]
             self.body = level.CreateDynamicBody(
-                angle=0, position=(self.coordinates()),
-                shapes=b.b2PolygonShape(box=(self.size())))  # 1 = 20 pixel
+                angle=0, position=(self.get_box2d_coordinates()),
+                shapes=b.b2PolygonShape(box=(self.get_box2d_size())))  # 1 = 20 pixel
             self.x, self.y = 0, 0
             self.check_jump = 0
+            self.stand = True
+            self.dir = 1
+            self.left = False
+            self.right = False
+            self.run = False
+            self.j_check = False
+            self.start = True
 
-        def coordinates(self):
+        def get_box2d_coordinates(self):
             formula_x = 0.1 * (self.player_location[0] + (self.sprite.get_width() / 2))
             if formula_x > 0:
                 formula_x -= 0.05
@@ -38,7 +49,7 @@ def main():
             self.player_location = [x / 0.1 - (self.sprite.get_width() / 2) + 0.05,
                                     -(y / 0.1 - HEIGHT + (self.sprite.get_height() / 2))]
 
-        def size(self):
+        def get_box2d_size(self):
             size_x = 0.05 * (self.sprite.get_width() - 1)
             size_y = 0.05 * (self.sprite.get_height() - 1)
             return size_x, size_y
@@ -64,12 +75,23 @@ def main():
                     if self.jump and len(self.body.contacts) != 0:
                         self.y += 40
                         self.jump = False
+                        self.stand = False
                         self.check_jump = 0
             if events.type == KEYUP:
                 if events.key == K_RIGHT:
                     self.moving_right = False
                 if events.key == K_LEFT:
                     self.moving_left = False
+
+        def change_dir(self):  # ToDo
+            if self.body.linearVelocity[0] > 0:
+                self.dir = 1
+                self.run = True
+            elif self.body.linearVelocity[0] < 0:
+                self.dir = -1
+                self.run = True
+            if self.body.linearVelocity[0] == 0:
+                self.run = False
 
         def check(self):
             if self.moving_left:
@@ -78,24 +100,43 @@ def main():
             if self.moving_right:
                 if self.x < 13:
                     self.x += 1
+            if not self.j_check and not self.jump and not self.start:
+                if self.dir == 1:
+                    self.sprite = load_image('jump1.png', DATA_FILE, -1)
+                elif self.dir == -1:
+                    self.sprite = load_image('jump-1.png', DATA_FILE, -1)
+                self.j_check = True
             if len(self.body.contacts) != 0:
                 if self.check_jump != 8:
                     self.check_jump += 1
-                if self.check_jump == 8 and self.y == 0:
+                if self.check_jump == 8 and self.body.linearVelocity[1] == 0:
                     self.jump = True
+                    self.j_check = False
+                    self.start = False
+                    if not self.run:
+                        if self.dir == 1:
+                            self.sprite = load_image('stand1.png', DATA_FILE, -1)
+                        elif self.dir == -1:
+                            self.sprite = load_image('stand-1.png', DATA_FILE, -1)
+                    elif self.run:
+                        pass
+                        """if self.dir == 1:
+                            self.sprite = load_image('stand1.png', DATA_FILE, -1)
+                        elif self.dir == -1:
+                            self.sprite = load_image('stand-1.png', DATA_FILE, -1)"""
 
-        def drawPolygons(self, py_screen):
+        def draw_polygons(self, py_screen):
             for fixture in self.body.fixtures:
                 shape = fixture.shape
                 vertices = [self.body.transform * v * 10 for v in shape.vertices]
                 vertices = [(v[0], 240 - v[1]) for v in vertices]
                 pygame.draw.polygon(py_screen, (255, 255, 255), vertices)
 
-        def animation(self):
-            pass
-
-        def death(self):
-            pass
+        def death(self):  # ToDo
+            if self.player_location[1] + self.sprite.get_height() >= HEIGHT:
+                return False
+            else:
+                return True
 
     pygame.init()
     pygame.font.init()
@@ -111,7 +152,7 @@ def main():
     world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
     DATA_FILE = 'data'
     person = Hero(world)
-    labyrinth = Labyrinth('test.tmx', world, DATA_FILE, HEIGHT)
+    my_map = Map('test.tmx', world, DATA_FILE, HEIGHT)
     while running:
         person.merge()
         person.awake()
@@ -122,10 +163,11 @@ def main():
             person.movement(event)
         person.check()
         person.set_x_y()
+        person.change_dir()
+        running = person.death()
         # camera.update(player)
         screen.fill(SKY)
-        labyrinth.render(screen)
-        # person.drawPolygons(screen)
+        my_map.render(screen)
         screen.blit(person.sprite, person.player_location)
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
@@ -189,14 +231,14 @@ def link_file(name, DATA_FILE):
         raise FileNotFoundError(f'Cannot find image: {name}')
 
 
-def size(image, last, first):
+def get_box2d_size(image, last, first):
     size_x = 0.05 * ((image.get_width() - 1) * (last - first + 1)) + 0.1
     size_x += int(size_x / 0.85) * 0.05 - 0.05
     size_y = 0.05 * (image.get_height() - 1)
     return size_x, size_y
 
 
-def drawPolygons(screen, i):
+def draw_polygons(screen, i):
     for fixture in i.fixtures:
         shape = fixture.shape
         vertices = [i.transform * v * 10 for v in shape.vertices]
@@ -204,7 +246,7 @@ def drawPolygons(screen, i):
         pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
-class Labyrinth:
+class Map:
     def __init__(self, filename, world, DATAFILE, HEIGHT):
         self.map = pytmx.load_pygame(link_file(filename, DATAFILE))
         self.world = world
@@ -233,23 +275,25 @@ class Labyrinth:
                         if x == self.width - 1:
                             last_x = x
                             first = False
-                            self.collision(size(image, last_x, first_x),
-                                           self.coordinates(image, first_x, y, self.HEIGHT, last_x, first_x))
+                            self.set_collision(get_box2d_size(image, last_x, first_x),
+                                               self.get_box2d_coordinates(image, first_x, y, self.HEIGHT, last_x,
+                                                                          first_x))
                         elif self.map.get_tile_image(x + 1, y, 0) is None:
                             last_x = x
                             first = False
-                            self.collision(size(image, last_x, first_x),
-                                           self.coordinates(image, first_x, y, self.HEIGHT, last_x, first_x))
+                            self.set_collision(get_box2d_size(image, last_x, first_x),
+                                               self.get_box2d_coordinates(image, first_x, y, self.HEIGHT, last_x,
+                                                                          first_x))
                         else:
                             first = True
                     screen.blit(image, (x * self.tile_width, y * self.tile_height))
         self.col = False
 
-    def collision(self, sizes, coordinates):
+    def set_collision(self, sizes, coordinates):
         self.world.CreateStaticBody(position=coordinates,
                                     shapes=b.b2PolygonShape(box=sizes))
 
-    def coordinates(self, image, x, y, HEIGHT, last, first):
+    def get_box2d_coordinates(self, image, x, y, HEIGHT, last, first):
         formula_x = 0.1 * ((x * image.get_width()) + (image.get_width() * (last - first + 1) / 2))
         if formula_x > 0:
             formula_x += 0.05
