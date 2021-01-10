@@ -13,9 +13,9 @@ def main():
             self.moving_left = False
             self.moving_right = False
             self.animations_right = [load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
-                                     load_image('walk3.png', DATA_FILE, -1)]
-            self.animations_right = [load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
-                                     load_image('walk-3.png', DATA_FILE, -1)]
+                                     load_image('walk3.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1)]
+            self.animations_left = [load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1)]
             self.sprite = load_image('stand1.png', DATA_FILE, -1)
             self.player_location = [10, HEIGHT - self.sprite.get_height() - 48]
             self.body = level.CreateDynamicBody(
@@ -23,10 +23,9 @@ def main():
                 shapes=b.b2PolygonShape(box=(self.get_box2d_size())))  # 1 = 20 pixel
             self.x, self.y = 0, 0
             self.check_jump = 0
+            self.anim_count = 0
             self.stand = True
             self.dir = 1
-            self.left = False
-            self.right = False
             self.run = False
             self.j_check = False
             self.start = True
@@ -91,6 +90,7 @@ def main():
                 self.dir = -1
                 self.run = True
             if self.body.linearVelocity[0] == 0:
+                self.anim_count = 0
                 self.run = False
 
         def check(self):
@@ -100,12 +100,6 @@ def main():
             if self.moving_right:
                 if self.x < 13:
                     self.x += 1
-            if not self.j_check and not self.jump and not self.start:
-                if self.dir == 1:
-                    self.sprite = load_image('jump1.png', DATA_FILE, -1)
-                elif self.dir == -1:
-                    self.sprite = load_image('jump-1.png', DATA_FILE, -1)
-                self.j_check = True
             if len(self.body.contacts) != 0:
                 if self.check_jump != 8:
                     self.check_jump += 1
@@ -165,6 +159,20 @@ def main():
         person.set_x_y()
         person.change_dir()
         running = person.death()
+        if person.anim_count + 1 >= 60:
+            person.anim_count = 0
+        elif not person.jump and not person.start:
+            if person.dir == 1:
+                person.sprite = load_image('jump1.png', DATA_FILE, -1)
+            elif person.dir == -1:
+                person.sprite = load_image('jump-1.png', DATA_FILE, -1)
+            person.j_check = True
+        elif person.moving_right:
+            person.sprite = person.animations_right[person.anim_count // 15]
+            person.anim_count += 1
+        elif person.moving_left:
+            person.sprite = person.animations_left[person.anim_count // 15]
+            person.anim_count += 1
         # camera.update(player)
         screen.fill(SKY)
         my_map.render(screen)
