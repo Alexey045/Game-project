@@ -8,28 +8,44 @@ import Box2D as b
 import pygame_gui
 
 
+# ToDo Замок
 def main():
+    pygame.init()
+    pygame.font.init()
     vec = pygame.math.Vector2
     py_world = pygame.Surface((1600, 240))
-    manager = pygame_gui.UIManager((320, 240))
+    manager_menu = pygame_gui.UIManager((320, 240))
 
     class Hero:
         def __init__(self, level):
             self.jump = False
             self.moving_left = False
             self.moving_right = False
-            self.animations_right = [load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
-                                     load_image('walk3.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
-                                     load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
-                                     load_image('walk3.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
-                                     load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
-                                     load_image('walk3.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1)]
-            self.animations_left = [load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
-                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
-                                    load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
-                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
-                                    load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
-                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1)
+            self.lives = 3
+            self.animations_right = [load_image('walk1.png', DATA_FILE, -1),
+                                     load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk3.png', DATA_FILE, -1),
+                                     load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk1.png', DATA_FILE, -1),
+                                     load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk3.png', DATA_FILE, -1),
+                                     load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk1.png', DATA_FILE, -1),
+                                     load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk3.png', DATA_FILE, -1),
+                                     load_image('walk2.png', DATA_FILE, -1)]
+            self.animations_left = [load_image('walk-1.png', DATA_FILE, -1),
+                                    load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-3.png', DATA_FILE, -1),
+                                    load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-1.png', DATA_FILE, -1),
+                                    load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-3.png', DATA_FILE, -1),
+                                    load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-1.png', DATA_FILE, -1),
+                                    load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-3.png', DATA_FILE, -1),
+                                    load_image('walk-2.png', DATA_FILE, -1)
                                     ]
             self.sprite = load_image('stand1.png', DATA_FILE, -1)
             self.player_location = [10, HEIGHT - self.sprite.get_height() - 48]
@@ -143,6 +159,23 @@ def main():
             else:
                 return True
 
+        def win(self):
+            if self.player_location[0] >= 1432:
+                return True
+
+    class Menu:
+        def __init__(self, man):
+            self.manager = man
+            self.layer = pygame.Surface((320, 240))
+            self.label = pygame_gui.elements.UILabel(
+                relative_rect=pygame.Rect((70, 30), (180, 60)), text='Super Yandex Proj.',
+                manager=manager_menu)
+            self.switch = pygame_gui.elements.UIButton(
+                relative_rect=pygame.Rect((130, 90), (60, 60)),
+                text="Start",
+                manager=manager_menu
+            )
+
     class Camera:
         def __init__(self, player):
             self.player = player
@@ -195,42 +228,61 @@ def main():
         def scroll(self):
             self.camera.offset.x += 1
 
-    pygame.init()
-    pygame.font.init()
     WIDTH = 320
     HEIGHT = 240
+    DATA_FILE = 'data'
     SIZE = (WIDTH, HEIGHT)
     SKY = (119, 128, 225)
     screen = pygame.display.set_mode(SIZE)
+    pygame.display.set_caption('Super Yandex proj.')
     clock = pygame.time.Clock()
-    running = True
+
     world = b.b2World()
     world.gravity = (0, -100)
     world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
     world.CreateStaticBody(position=(-5, 0), shapes=b.b2PolygonShape(box=(5.05, 100)))
-    DATA_FILE = 'data'
+
+    menu = Menu(manager_menu)
     person = Hero(world)
-    my_map = Map('test.tmx', world, DATA_FILE, HEIGHT)
+    my_map = Map('main1.tmx', world, DATA_FILE, HEIGHT)
     camera = Camera(person)
     follow = Follow(camera, person)
     Auto(camera, person)
     Border(camera, person)
-    camera.set_method(follow)
+
+    camera.set_method(follow)  # ToDo
+    win1 = False
+    win2 = False
+    start_menu = True
+    running = True
     while running:
         delta_time = 17 / 1000.0
         person.merge()
         person.awake()
         person.get_x_y()
+
+        if person.win():
+            print('yes')
+            return
+
         for event in pygame.event.get():
             if event.type == QUIT:
                 return
-            person.movement(event)
-            manager.process_events(event)
-        manager.update(delta_time)
+            if not start_menu:
+                person.movement(event)
+            if start_menu:
+                if event.type == pygame.USEREVENT:
+                    if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                        if event.ui_element == menu.switch:
+                            start_menu = False
+            manager_menu.process_events(event)
+
+        manager_menu.update(delta_time)
         person.check()
         person.set_x_y()
         person.change_dir()
         running = person.death()
+
         if person.anim_count + 1 >= 60:
             person.anim_count = 0
         elif not person.jump and not person.start:
@@ -245,13 +297,21 @@ def main():
         elif person.moving_left:
             person.sprite = person.animations_left[person.anim_count // 5]
             person.anim_count += 1
+
         camera.scroll()
+
         screen.fill(SKY)
         py_world.fill(SKY)
-        manager.draw_ui(screen)
+
         my_map.render(py_world)
         screen.blit(py_world, [0 - camera.offset.x, 0])
         screen.blit(person.sprite, [person.player_location[0] - camera.offset.x, person.player_location[1]])
+
+        if start_menu:
+            menu.layer.fill((134, 121, 200))
+            manager_menu.draw_ui(menu.layer)
+            screen.blit(menu.layer, [0, 0])
+
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
         clock.tick(60)
@@ -290,8 +350,8 @@ def link_file(name, DATA_FILE):
 
 
 def get_box2d_size(image, last, first):
-    size_x = 0.05 * ((image.get_width() - 1) * (last - first + 1)) + 0.1
-    size_x += int(size_x / 0.85) * 0.05 - 0.05
+    size_x = 0.05 * ((image.get_width() - 1) * (last - first + 1))
+    size_x += int(size_x / 0.85) * 0.05 + 0.05
     size_y = 0.05 * (image.get_height() - 1)
     return size_x, size_y
 
@@ -304,7 +364,7 @@ def draw_polygons(screen, i):
         pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
-class Map:
+class Map:  # Todo
     def __init__(self, filename, world, DATAFILE, HEIGHT):
         self.map = pytmx.load_pygame(link_file(filename, DATAFILE))
         self.world = world
@@ -319,31 +379,36 @@ class Map:
     def get_tile_id(self, pos):
         return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
 
+    def change_map(self, map_name, DATAFILE):
+        self.map = pytmx.load_pygame(link_file(map_name, DATAFILE))
+
     def render(self, screen):
         first_x = 0
-        first = False
+        first_sprite = False
         for y in range(self.height):
             for x in range(self.width):
                 image = self.map.get_tile_image(x, y, 0)
                 if image is not None:
-                    if not first:
+                    if not first_sprite:
                         first_x = x
-                        first = True
+                        first_sprite = True
                     if self.col:
                         if x == self.width - 1:
                             last_x = x
-                            first = False
+                            first_sprite = False
                             self.set_collision(get_box2d_size(image, last_x, first_x),
-                                               self.get_box2d_coordinates(image, first_x, y, self.HEIGHT, last_x,
+                                               self.get_box2d_coordinates(image, first_x, y, self.HEIGHT,
+                                                                          last_x,
                                                                           first_x))
                         elif self.map.get_tile_image(x + 1, y, 0) is None:
                             last_x = x
-                            first = False
+                            first_sprite = False
                             self.set_collision(get_box2d_size(image, last_x, first_x),
-                                               self.get_box2d_coordinates(image, first_x, y, self.HEIGHT, last_x,
+                                               self.get_box2d_coordinates(image, first_x, y, self.HEIGHT,
+                                                                          last_x,
                                                                           first_x))
                         else:
-                            first = True
+                            first_sprite = True
                     screen.blit(image, (x * self.tile_width, y * self.tile_height))
         self.col = False
 
