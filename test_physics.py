@@ -1,21 +1,36 @@
 import os
 import sys
+from abc import ABC, abstractmethod
 from pygame.locals import *
 import pygame
 import pytmx
 import Box2D as b
+import pygame_gui
 
 
 def main():
+    vec = pygame.math.Vector2
+    py_world = pygame.Surface((1600, 240))
+    manager = pygame_gui.UIManager((320, 240))
+
     class Hero:
         def __init__(self, level):
             self.jump = False
             self.moving_left = False
             self.moving_right = False
             self.animations_right = [load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk3.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk3.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
+                                     load_image('walk1.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1),
                                      load_image('walk3.png', DATA_FILE, -1), load_image('walk2.png', DATA_FILE, -1)]
             self.animations_left = [load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
-                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1)]
+                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-1.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1),
+                                    load_image('walk-3.png', DATA_FILE, -1), load_image('walk-2.png', DATA_FILE, -1)
+                                    ]
             self.sprite = load_image('stand1.png', DATA_FILE, -1)
             self.player_location = [10, HEIGHT - self.sprite.get_height() - 48]
             self.body = level.CreateDynamicBody(
@@ -82,7 +97,7 @@ def main():
                 if events.key == K_LEFT:
                     self.moving_left = False
 
-        def change_dir(self):  # ToDo
+        def change_dir(self):
             if self.body.linearVelocity[0] > 0:
                 self.dir = 1
                 self.run = True
@@ -114,10 +129,6 @@ def main():
                             self.sprite = load_image('stand-1.png', DATA_FILE, -1)
                     elif self.run:
                         pass
-                        """if self.dir == 1:
-                            self.sprite = load_image('stand1.png', DATA_FILE, -1)
-                        elif self.dir == -1:
-                            self.sprite = load_image('stand-1.png', DATA_FILE, -1)"""
 
         def draw_polygons(self, py_screen):
             for fixture in self.body.fixtures:
@@ -132,6 +143,58 @@ def main():
             else:
                 return True
 
+    class Camera:
+        def __init__(self, player):
+            self.player = player
+            self.offset = vec(0, 0)
+            self.offset_float = vec(0, 0)
+            self.w, self.h = 320, 240
+            self.CONST = vec(-self.w / 2 + self.player.sprite.get_width() / 2,
+                             -self.player.sprite.get_height() + 20)
+
+        def scroll(self):
+            self.method.scroll()
+
+        def set_method(self, method):
+            self.method = method
+
+    class CamScroll(ABC):
+        def __init__(self, cam, player):
+            self.player = player
+            self.camera = cam
+
+        @abstractmethod
+        def scroll(self):
+            pass
+
+    class Follow(CamScroll):
+        def __init__(self, cam, player):
+            CamScroll.__init__(self, cam, player)
+
+        def scroll(self):
+            self.camera.offset_float.x += (
+                    self.player.player_location[0] - self.camera.offset_float.x + self.camera.CONST.x)
+            self.camera.offset.x, self.camera.offset.y = int(self.camera.offset_float.x), 0
+
+    class Border(CamScroll):
+        def __init__(self, cam, player):
+            CamScroll.__init__(self, cam, player)
+
+        def scroll(self):
+            self.camera.offset_float.x += (
+                    self.player.player_location[0] - self.camera.offset_float.x + self.camera.CONST.x)
+            self.camera.offset.x, self.camera.offset.y = int(self.camera.offset_float.x), 0
+            self.camera.offset.x = max(self.player.player_location, self.camera.offset.x)
+            self.camera.offset.x = min(self.camera.offset.x,
+                                       self.player.player_location + self.player.sprite - self.camera.w)
+
+    class Auto(CamScroll):
+        def __init__(self, cam, player):
+            CamScroll.__init__(self, cam, player)
+
+        def scroll(self):
+            self.camera.offset.x += 1
+
     pygame.init()
     pygame.font.init()
     WIDTH = 320
@@ -144,10 +207,17 @@ def main():
     world = b.b2World()
     world.gravity = (0, -100)
     world.CreateStaticBody(position=(0, -5), shapes=b.b2PolygonShape(box=(70, 5)))
+    world.CreateStaticBody(position=(-5, 0), shapes=b.b2PolygonShape(box=(5.05, 100)))
     DATA_FILE = 'data'
     person = Hero(world)
     my_map = Map('test.tmx', world, DATA_FILE, HEIGHT)
+    camera = Camera(person)
+    follow = Follow(camera, person)
+    Auto(camera, person)
+    Border(camera, person)
+    camera.set_method(follow)
     while running:
+        delta_time = 17 / 1000.0
         person.merge()
         person.awake()
         person.get_x_y()
@@ -155,6 +225,8 @@ def main():
             if event.type == QUIT:
                 return
             person.movement(event)
+            manager.process_events(event)
+        manager.update(delta_time)
         person.check()
         person.set_x_y()
         person.change_dir()
@@ -168,15 +240,18 @@ def main():
                 person.sprite = load_image('jump-1.png', DATA_FILE, -1)
             person.j_check = True
         elif person.moving_right:
-            person.sprite = person.animations_right[person.anim_count // 15]
+            person.sprite = person.animations_right[person.anim_count // 5]
             person.anim_count += 1
         elif person.moving_left:
-            person.sprite = person.animations_left[person.anim_count // 15]
+            person.sprite = person.animations_left[person.anim_count // 5]
             person.anim_count += 1
-        # camera.update(player)
+        camera.scroll()
         screen.fill(SKY)
-        my_map.render(screen)
-        screen.blit(person.sprite, person.player_location)
+        py_world.fill(SKY)
+        manager.draw_ui(screen)
+        my_map.render(py_world)
+        screen.blit(py_world, [0 - camera.offset.x, 0])
+        screen.blit(person.sprite, [person.player_location[0] - camera.offset.x, person.player_location[1]])
         pygame.display.flip()
         world.Step(1 / 60, 10, 10)
         clock.tick(60)
@@ -202,31 +277,6 @@ def load_image(name, DATA_FILE, color_key=None):
 def terminate():
     pygame.quit()
     sys.exit()
-
-
-# Todo
-"""class Camera:
-    def __init__(self, field_size):
-        self.dx = 0
-        self.dy = 0
-        # self.field_size = field_size # 20, 15
-        self.field_size = 20, 15
-
-    def apply(self, obj):
-        obj.rect.x += self.dx
-        if obj.rect.x < -obj.rect.width:
-            obj.rect.x += (self.field_size[0] + 1) * obj.rect.width
-        if obj.rect.x >= (self.field_size[0]) * obj.rect.width:
-            obj.rect.x += -obj.rect.width * (1 + self.field_size[0])
-        obj.rect.y += self.dy
-        if obj.rect.y < -obj.rect.height:
-            obj.rect.y += (self.field_size[1] + 1) * obj.rect.height
-        if obj.rect.y >= (self.field_size[1]) * obj.rect.height:
-            obj.rect.y += -obj.rect.height * (1 + self.field_size[1])
-
-    def update(self, target, WIDTH, HEIGHT):
-        self.dx = -(target.rect.x + target.rect.w // 2 - WIDTH // 2)
-        self.dy = -(target.rect.y + target.rect.h // 2 - HEIGHT // 2)"""
 
 
 def link_file(name, DATA_FILE):
