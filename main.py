@@ -12,9 +12,7 @@ def main():
     pygame.mixer.pre_init()
     pygame.init()
     pygame.font.init()
-
     vec = pygame.math.Vector2
-    py_world = pygame.Surface((1600, 240))
 
     manager_menu = pygame_gui.UIManager((320, 240))
     manager_death = pygame_gui.UIManager((320, 240))
@@ -23,6 +21,7 @@ def main():
     class Hero:
         def __init__(self, level):
             self.jump = False
+            self.jump_sound = pygame.mixer.Sound(link_file('jump.wav', DATA_FILE))
             self.moving_left = False
             self.moving_right = False
             self.animations_right = [load_image('walk1.png', DATA_FILE, -1),
@@ -52,7 +51,7 @@ def main():
                                     ]
             self.sprite = load_image('stand1.png', DATA_FILE, -1)
             self.start_pos = (10, HEIGHT - self.sprite.get_height() - 48)
-            self.player_location = [10, HEIGHT - self.sprite.get_height() - 48]
+            self.player_location = [self.start_pos[0], self.start_pos[1]]
             self.body = level.CreateDynamicBody(
                 angle=0, position=(self.get_box2d_coordinates()),
                 shapes=b.b2PolygonShape(box=(self.get_box2d_size())))  # 1 = 20 pixel
@@ -104,18 +103,20 @@ def main():
             if events.type == KEYDOWN:
                 if events.key == K_RIGHT or events.key == K_d:
                     self.moving_right = True
-                if events.key == K_LEFT or events.key == K_a:
+                if events.key == K_LEFT or event.key == K_a:
                     self.moving_left = True
-                if events.key == K_UP or events.key == K_w:
+
+                if events.key == K_UP or events.key == K_w or events.key == K_SPACE:
                     if self.jump and len(self.body.contacts) != 0:
                         self.y += 40
+                        self.jump_sound.play()
                         self.jump = False
                         self.stand = False
                         self.check_jump = 0
             if events.type == KEYUP:
-                if events.key == K_RIGHT:
+                if events.key == K_RIGHT or events.key == K_d:
                     self.moving_right = False
-                if events.key == K_LEFT:
+                if events.key == K_LEFT or events.key == K_a:
                     self.moving_left = False
 
         def change_dir(self):
@@ -158,7 +159,7 @@ def main():
                 vertices = [(v[0], 240 - v[1]) for v in vertices]
                 pygame.draw.polygon(py_screen, (255, 255, 255), vertices)
 
-        def death(self):  # ToDo
+        def death(self):
             if self.player_location[1] + self.sprite.get_height() >= HEIGHT:
                 return False
             else:
@@ -176,13 +177,14 @@ def main():
             self.layer = pygame.Surface((320, 240))
             self.label = pygame_gui.elements.UILabel(
                 relative_rect=pygame.Rect((70, 30), (180, 60)), text='Super Yandex Proj.',
-                manager=self.manager
-            )
+                manager=self.manager)
             self.switch = pygame_gui.elements.UIButton(
                 relative_rect=pygame.Rect((130, 90), (60, 60)),
                 text="Start",
-                manager=self.manager
-            )
+                manager=self.manager)
+            self.author = pygame_gui.elements.UILabel(
+                relative_rect=pygame.Rect((70, 190), (180, 60)), text='Made by Alexey Alexey.',
+                manager=self.manager)
 
     class Death:
         def __init__(self, man):
@@ -191,6 +193,9 @@ def main():
             self.label = pygame_gui.elements.UILabel(
                 relative_rect=pygame.Rect((70, 30), (180, 60)), text='YOU DIED',
                 manager=self.manager)
+            self.label1 = pygame_gui.elements.UILabel(
+                relative_rect=pygame.Rect((70, 190), (180, 60)), text='Press ESC to exit.',
+                manager=self.manager)
 
     class Win:
         def __init__(self, man):
@@ -198,6 +203,9 @@ def main():
             self.layer = pygame.Surface((320, 240))
             self.label = pygame_gui.elements.UILabel(
                 relative_rect=pygame.Rect((70, 30), (180, 60)), text='YOU WIN!!!',
+                manager=self.manager)
+            self.label = pygame_gui.elements.UILabel(
+                relative_rect=pygame.Rect((70, 190), (180, 60)), text='Press ESC to exit.',
                 manager=self.manager)
 
     class Camera:
@@ -265,9 +273,9 @@ def main():
 
     pygame.mixer.music.load(link_file('ambient.wav', DATA_FILE))
     pygame.mixer.music.play(-1)
-    jump_sound = pygame.mixer.Sound(link_file('jump.wav', DATA_FILE))
+    button_click = pygame.mixer.Sound(link_file('button.wav', DATA_FILE))
     death_sound = pygame.mixer.Sound(link_file('death.wav', DATA_FILE))
-    win_sound = pygame.mixer.Sound(link_file('jump.wav', DATA_FILE))
+    win_sound = pygame.mixer.Sound(link_file('win.wav', DATA_FILE))
 
     world = b.b2World()
     world.gravity = (0, -100)
@@ -280,6 +288,7 @@ def main():
 
     person = Hero(world)
     my_map = Map('main1.tmx', world, DATA_FILE, HEIGHT)
+    py_world = pygame.Surface(my_map.get_size())
     camera = Camera(person)
     follow = Follow(camera, person)
     Auto(camera, person)
@@ -288,9 +297,12 @@ def main():
     camera.set_method(follow)
     music = False
     start_menu = True
+    switch = True
+    win_check = False
+    death_check = False
     running = True
+    delta_time = 17 / 1000.0
     while running:
-        delta_time = 17 / 1000.0
         person.merge()
         person.awake()
         person.get_x_y()
@@ -301,14 +313,16 @@ def main():
                     return
             if event.type == QUIT:
                 return
-            if not start_menu:
+            if not start_menu and not switch:
                 person.movement(event)
             if start_menu:
                 if event.type == pygame.USEREVENT:
                     if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                         if event.ui_element == menu.switch:
+                            button_click.play(0)
                             start_menu = False
                             music = True
+                            switch = False
             manager_menu.process_events(event)
 
         menu.manager.update(delta_time)
@@ -322,6 +336,7 @@ def main():
         if music:
             pygame.mixer.music.load(link_file('disco.wav', DATA_FILE))
             pygame.mixer.music.play(-1, 0, 3000)
+            pygame.mixer.music.set_volume(0.2)
             music = False
 
         if person.anim_count + 1 >= 60:
@@ -349,18 +364,27 @@ def main():
         screen.blit(person.sprite, [person.player_location[0] - camera.offset.x, person.player_location[1]])
 
         if start_menu:
+            switch = True
             menu.layer.fill(SKY)
             menu.manager.draw_ui(menu.layer)
             screen.blit(menu.layer, [0, 0])
 
         if not person.death():
-            pygame.mixer.music.stop()
+            switch = True
+            if not death_check:
+                pygame.mixer.music.stop()
+                death_sound.play()
+                death_check = True
             death.layer.fill(SKY)
             death.manager.draw_ui(death.layer)
             screen.blit(death.layer, [0, 0])
 
-        if person.win():  # ToDo
-            pygame.mixer.music.stop()
+        if person.win():
+            switch = True
+            if not win_check:
+                pygame.mixer.music.stop()
+                win_sound.play()
+                win_check = True
             win.layer.fill(SKY)
             win.manager.draw_ui(win.layer)
             screen.blit(win.layer, [0, 0])
@@ -431,6 +455,10 @@ class Map:
 
     def get_tile_id(self, pos):
         return self.map.tiledgidmap[self.map.get_tile_gid(*pos, 0)]
+
+    def get_size(self):
+        w, h = (self.width * self.tile_width, self.height * self.tile_width)
+        return w, h
 
     def change_map(self, map_name, DATAFILE):
         self.map = pytmx.load_pygame(link_file(map_name, DATAFILE))
