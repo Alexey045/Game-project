@@ -18,13 +18,13 @@ def main():
     manager_death = pygame_gui.UIManager((320, 240))
     manager_win = pygame_gui.UIManager((320, 240))
 
-    class Hero:
+    class Hero:  # main character
         def __init__(self, level):
             self.jump = False
             self.jump_sound = pygame.mixer.Sound(link_file('jump.wav', DATA_FILE))
             self.moving_left = False
             self.moving_right = False
-            self.animations_right = [load_image('walk1.png', DATA_FILE, -1),
+            self.animations_right = [load_image('walk1.png', DATA_FILE, -1),  # add animations
                                      load_image('walk2.png', DATA_FILE, -1),
                                      load_image('walk3.png', DATA_FILE, -1),
                                      load_image('walk2.png', DATA_FILE, -1),
@@ -52,7 +52,7 @@ def main():
             self.sprite = load_image('stand1.png', DATA_FILE, -1)
             self.start_pos = (10, HEIGHT - self.sprite.get_height() - 48)
             self.player_location = [self.start_pos[0], self.start_pos[1]]
-            self.body = level.CreateDynamicBody(
+            self.body = level.CreateDynamicBody(  # box2d collision create
                 angle=0, position=(self.get_box2d_coordinates()),
                 shapes=b.b2PolygonShape(box=(self.get_box2d_size())))  # 1 = 20 pixel
             self.start_box2d = self.get_box2d_coordinates()
@@ -60,7 +60,7 @@ def main():
             self.check_jump = 0
             self.anim_count = 0
             self.stand = True
-            self.dir = 1
+            self.dir = 1  # 1 right. -1 left
             self.run = False
             self.j_check = False
             self.start = True
@@ -78,7 +78,7 @@ def main():
                 formula_y += 0.05
             return formula_x, formula_y
 
-        def merge(self):
+        def merge(self):  # merge sprite and dynamic box2d body
             x, y = person.body.position
             self.player_location = [x / 0.1 - (self.sprite.get_width() / 2) + 0.05,
                                     -(y / 0.1 - HEIGHT + (self.sprite.get_height() / 2))]
@@ -96,7 +96,7 @@ def main():
             self.body.linearVelocity.x = self.x
             self.body.linearVelocity.y = self.y
 
-        def awake(self):
+        def awake(self):  # if not awake - object freeze
             self.body.awake = True
 
         def movement(self, events):
@@ -130,7 +130,7 @@ def main():
                 self.anim_count = 0
                 self.run = False
 
-        def check(self):
+        def check(self):  # control velocity
             if self.moving_left:
                 if self.x > -13:
                     self.x -= 1
@@ -301,8 +301,8 @@ def main():
     win_check = False
     death_check = False
     running = True
-    delta_time = 17 / 1000.0
-    while running:
+    delta_time = 17 / 1000.0  # time for refresh gui
+    while running:  # game loop
         person.merge()
         person.awake()
         person.get_x_y()
@@ -325,7 +325,7 @@ def main():
                             switch = False
             manager_menu.process_events(event)
 
-        menu.manager.update(delta_time)
+        menu.manager.update(delta_time)  # update gui
         death.manager.update(delta_time)
         win.manager.update(delta_time)
 
@@ -333,7 +333,7 @@ def main():
         person.set_x_y()
         person.change_dir()
 
-        if music:
+        if music:  # main loop music
             pygame.mixer.music.load(link_file('disco.wav', DATA_FILE))
             pygame.mixer.music.play(-1, 0, 3000)
             pygame.mixer.music.set_volume(0.2)
@@ -354,7 +354,7 @@ def main():
             person.sprite = person.animations_left[person.anim_count // 5]
             person.anim_count += 1
 
-        camera.scroll()
+        camera.scroll()  # camera update
 
         screen.fill(SKY)
         py_world.fill(SKY)
@@ -441,7 +441,7 @@ def draw_polygons(screen, i):
         pygame.draw.polygon(screen, (255, 255, 255), vertices)
 
 
-class Map:
+class Map:  # class for tiled map editor
     def __init__(self, filename, world, DATAFILE, HEIGHT):
         self.map = pytmx.load_pygame(link_file(filename, DATAFILE))
         self.world = world
